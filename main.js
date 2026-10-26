@@ -7,6 +7,31 @@
   const root = document.documentElement;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+
+  /* menu mobile : un bouton + un panneau plein écran avec tous les liens (sans dépendre de GSAP) */
+  (() => {
+    const bar = $('[data-top]'), navs = $$('[data-nav]');
+    if (!bar || !navs.length || bar.classList.contains('side')) return;
+    const links = navs.flatMap(n => $$('a[href^="#"]', n));
+    const btn = document.createElement('button');
+    btn.className = 'mm-btn'; btn.type = 'button'; btn.setAttribute('aria-label', 'Ouvrir le menu'); btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'mm');
+    btn.innerHTML = '<span></span><span></span>';
+    const panel = document.createElement('div');
+    panel.className = 'mm'; panel.id = 'mm'; panel.setAttribute('data-lenis-prevent', ''); panel.setAttribute('aria-hidden', 'true');
+    panel.innerHTML = '<ul>' + links.map((a, i) => '<li style="--i:' + i + '"><a href="' + a.getAttribute('href') + '"><i>' + String(i + 1).padStart(2, '0') + '</i>' + a.textContent.replace(/[→↗]/g, '').trim() + '</a></li>').join('') + '</ul>';
+    bar.classList.add('has-mm'); bar.appendChild(btn); document.body.appendChild(panel);
+    const set = open => {
+      root.classList.toggle('mm-open', open);
+      btn.setAttribute('aria-expanded', open); btn.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
+      panel.setAttribute('aria-hidden', !open);
+      if (window.__lenis) open ? window.__lenis.stop() : window.__lenis.start();
+    };
+    btn.addEventListener('click', () => set(!root.classList.contains('mm-open')));
+    panel.addEventListener('click', e => { if (e.target.closest('a')) set(false); }, true);
+    addEventListener('keydown', e => { if (e.key === 'Escape') set(false); });
+    matchMedia('(min-width:901px)').addEventListener('change', e => { if (e.matches) set(false); });
+  })();
+
   /* accordéon : fonctionne même sans animation */
   $$('.acc__h').forEach(b => b.addEventListener('click', () => {
     const a = b.closest('.acc'), open = !a.classList.contains('is-open');
@@ -26,6 +51,7 @@
     const hover = matchMedia('(hover:hover)').matches;
 
     const lenis = new Lenis({ lerp: 0.09 });
+    window.__lenis = lenis;
     lenis.on('scroll', ScrollTrigger.update);
     gsap.ticker.add(t => lenis.raf(t * 1000));
     gsap.ticker.lagSmoothing(0);
@@ -105,7 +131,7 @@
     gsap.from('.arch', { clipPath: 'inset(100% 0 0 0 round 999px 999px 18px 18px)', duration: 1.5, ease: 'expo.inOut', delay: 0.3 });
     gsap.from('.arch img', { scale: 1.3, duration: 1.9, ease: 'power3.out', delay: 0.3 });
     gsap.from('.badge', { scale: 0, rotate: -120, duration: 1.2, ease: 'back.out(1.6)', delay: 1.3 });
-    if (desktop) gsap.to('.hero__ph', { yPercent: -6, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+    gsap.to('.hero__ph', { yPercent: -6, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
     /* deux métiers : les cartes arrivent en s'empilant */
     $$('.metiers__list article').forEach((a, i) => gsap.from(a, { y: 80, rotate: i ? 1.2 : -1.2, duration: 1.2, ease: 'power3.out', scrollTrigger: { trigger: a, start: 'top 88%' } }));
     /* barres de langue */
